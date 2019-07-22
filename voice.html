@@ -1,0 +1,69 @@
+<button id="start-btn">start</button>
+<button id="wiki-btn">wiki</button>
+<div id="result-div"></div>
+
+<script>
+//http.begin("http://wikipedia.simpleapi.net/api?keyword=" + urlencode(words));
+
+const startBtn = document.querySelector('#start-btn');
+const wikiBtn = document.querySelector('#wiki-btn');
+const resultDiv = document.querySelector('#result-div');
+let timerId;
+let timecount = 5000;
+
+SpeechRecognition = webkitSpeechRecognition || SpeechRecognition;
+let recognition = new SpeechRecognition();
+
+recognition.lang = 'ja-JP';
+recognition.interimResults = true;
+recognition.continuous = true;
+
+let finalTranscript = ''; // 確定した(黒の)認識結果
+
+recognition.onresult = (event) => {
+  let interimTranscript = ''; // 暫定(灰色)の認識結果
+  for (let i = event.resultIndex; i < event.results.length; i++) {
+    let transcript = event.results[i][0].transcript;
+    if (event.results[i].isFinal) {
+      finalTranscript += transcript;
+    } else {
+      interimTranscript = transcript;
+    }
+  }
+  resultDiv.innerHTML = finalTranscript + '<i style="color:#ddd;">' + interimTranscript + '</i>';
+}
+
+startBtn.onclick = () => {
+  recognition.start();
+  timerId = setTimeout(wikicall,timecount);
+}
+
+function wikicall() {
+  clearTimeout(timerId); 
+  alert("wiki");
+  recognition.stop();
+}
+
+wikiBtn.onclick = () => {
+  const word = "秋刀魚";
+
+  const data = {
+    format: "json",
+    action: "query",
+    prop: "extracts",
+    exintro: "",
+    explaintext: "",
+    titles: word,
+  };
+
+  fetch("https://ja.wikipedia.org/w/api.php", {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }).then(response => {
+    return response.json();
+  }).then(result => {
+    console.log(result);
+  });
+}
+
+</script>
