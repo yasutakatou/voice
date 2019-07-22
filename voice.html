@@ -47,7 +47,7 @@ function wikicall() {
 wikiBtn.onclick = () => {
   const word = "秋刀魚";
 
-  fetch("http://wikipedia.simpleapi.net/api?keyword=" + word + "&output=json", {
+  fetch("https://wikipedia.simpleapi.net/api?keyword=" + word + "&output=json", {
     method: 'GET',
   }).then(function(response){return response.json();})
     .then(function(response) {
