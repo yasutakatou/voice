@@ -47,22 +47,11 @@ function wikicall() {
 wikiBtn.onclick = () => {
   const word = "秋刀魚";
 
-  const data = {
-    format: "json",
-    action: "query",
-    prop: "extracts",
-    exintro: "",
-    explaintext: "",
-    titles: word,
-  };
-
-  fetch("https://ja.wikipedia.org/w/api.php", {
-    method: 'POST',
-    body: JSON.stringify(data),
-  }).then(response => {
-    return response.json();
-  }).then(result => {
-    console.log(result);
+  fetch("http://wikipedia.simpleapi.net/api?keyword=" + word + "&output=json", {
+    method: 'GET',
+  }).then(function(response){return response.json();})
+    .then(function(response) {
+      console.log(response);
   });
 }
 
