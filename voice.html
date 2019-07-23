@@ -1,15 +1,14 @@
 <button id="start-btn">start</button>
-<button id="wiki-btn">wiki</button>
+<!-- <button id="wiki-btn">wiki</button> -->
+<div id="status-div"></div>
 <div id="result-div"></div>
-
 <script>
-//http.begin("http://wikipedia.simpleapi.net/api?keyword=" + urlencode(words));
-
 const startBtn = document.querySelector('#start-btn');
 const wikiBtn = document.querySelector('#wiki-btn');
 const resultDiv = document.querySelector('#result-div');
+const statusDiv = document.querySelector('#status-div');
 let timerId;
-let timecount = 5000;
+let timecount = 3000;
 
 SpeechRecognition = webkitSpeechRecognition || SpeechRecognition;
 let recognition = new SpeechRecognition();
@@ -18,10 +17,10 @@ recognition.lang = 'ja-JP';
 recognition.interimResults = true;
 recognition.continuous = true;
 
-let finalTranscript = ''; // 確定した(黒の)認識結果
+let finalTranscript = '';
 
 recognition.onresult = (event) => {
-  let interimTranscript = ''; // 暫定(灰色)の認識結果
+  let interimTranscript = '';
   for (let i = event.resultIndex; i < event.results.length; i++) {
     let transcript = event.results[i][0].transcript;
     if (event.results[i].isFinal) {
@@ -33,26 +32,87 @@ recognition.onresult = (event) => {
   resultDiv.innerHTML = finalTranscript + '<i style="color:#ddd;">' + interimTranscript + '</i>';
 }
 
+window.onload = function() {
+  function onKeyDownOrUp(e) {
+    recognition.start();
+    timerId = setTimeout(recstop,timecount);
+    e.preventDefault();
+  };
+  // Set up key event handlers
+  window.addEventListener('keydown', onKeyDownOrUp);
+  window.addEventListener('keyup', onKeyDownOrUp);
+};
+
 startBtn.onclick = () => {
   recognition.start();
-  timerId = setTimeout(wikicall,timecount);
+  statusDiv.innerHTML = "かいし！";
+
+  timerId = setTimeout(recstop,timecount);
 }
 
-function wikicall() {
-  clearTimeout(timerId); 
-  alert("wiki");
+function recstop() {
   recognition.stop();
-}
+  statusDiv.innerHTML = "";
+  let count = 0;
 
-wikiBtn.onclick = () => {
-  const word = "秋刀魚";
+  console.log(document.getElementById("result-div").textContent);
 
-  fetch("https://wikipedia.simpleapi.net/api?keyword=" + word + "&output=json", {
+  let word = document.getElementById("result-div").textContent;
+
+  if(word.length < 1) { 
+    statusDiv.innerHTML = "よくわからなかったっす";
+    return; 
+  }
+
+  let voices = "";
+  let htmlFlag = false;
+
+  fetch("https://ja.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&redirects=1&exchars=200&explaintext=1&origin=*&titles=" + encodeURI(word), {
     method: 'GET',
-  }).then(function(response){return response.json();})
-    .then(function(response) {
-      console.log(response);
+  }).then(response => {
+    return response.json();
+  }).then(result => {
+    console.log(result.query.pages);
+    let searchResults = result.query.pages;
+    Object.keys(searchResults).forEach(function(pageid){
+      //console.log(searchResults[pageid].extract);
+      for(let w = 0; w < searchResults[pageid].extract.length; w = w + 1) {
+        c = searchResults[pageid].extract[w];
+
+        if(c == '<') { htmlFlag = true; }
+        if(htmlFlag == false) { 
+          voices += c;
+          count = count + 1;
+        }
+        if(c == '>') { htmlFlag = false; }
+
+        if(count > 150 && c.indexOf('。') > -1) { 
+          wikicall("あとはじぶんでしらべるべし");
+          break;
+        }
+
+        if(c.indexOf('。') > -1 || c.indexOf('、') > -1 || c.indexOf('・') > -1) {
+          console.log(voices);
+          wikicall(voices);
+          voices = "";
+        }
+      }
+    });
   });
 }
 
+function wikicall(result) {
+  let uttr = new SpeechSynthesisUtterance();
+  const voices = window.speechSynthesis.getVoices();
+
+  clearTimeout(timerId); 
+  recognition.stop();
+
+  uttr.text = result;
+  uttr.rate = 1;
+  uttr.volume = 1;
+  uttr.voice = voices[7];
+  uttr.lang = 'ja-JP';
+  speechSynthesis.speak(uttr);
+}
 </script>
